@@ -1,0 +1,40 @@
+04 <effect - 1>: Save changes for <effect>?
+
+0x07/0xfe: “Still alive” during preview, probably
+           (So the changes get auto-reverted when the app crashes)
+
+0f 03 {<RGB>}: Set all 106 keys’ colors
+0f 06 <mode> <RGB> <speed>: Pulse
+0f 07 <mode> <RGB> <speed> <direction>: Wave
+0f 09 <mode> <RGB> <speed> <when>: Reactive
+0f 0a <mode> <RGB> <speed> <when>: Reactive ripple
+0f 0b <mode> <RGB> <speed> <direction>: Rain
+0f 0c <gradient>: Gradient
+0f 0d <mode> <gradient> <speed>: Fade
+
+RGB: <red> <green> <blue> (each 0..255)
+
+Gradient:
+  <color count>
+  {<RGB> <position>}
+
+  (Up to ten colors, fill up to 41 bytes with zeroes)
+  position: 0..100
+
+mode:
+  0: fixed color (interleaved by black)
+  1: rainbow
+  2: randomized rainbow (works for rain and wave)
+  3: fixed color gradient (for fade)
+
+when:
+  0: key up
+  1: key down
+
+direction:
+  1: left to right
+  2: right to left
+  3: top to bottom
+  4: bottom to top
+
+speed: 0..100 (sometimes more than 100 % is possible)
