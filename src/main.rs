@@ -173,7 +173,12 @@ impl Keyboard {
 
         let dev = match dev_opt.unwrap().open_device(&hidapi) {
             Ok(x) => x,
-            Err(e) => panic!("{}", e)
+            Err(e) => {
+                eprintln!("Failed to open HID device: {}\n\
+                           Check whether you have the required access rights.",
+                          e);
+                std::process::exit(1);
+            }
         };
 
         Keyboard {
