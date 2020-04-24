@@ -38,8 +38,8 @@ Effects:
           row/column
     Parameters: color, speed, direction
 
-  · gradient: Create a static gradient
-    Parameters: color, speed, direction
+  · gradient: Create a static gradient (left to right)
+    Parameters: color
 
   · fade: Fade all LEDs simultaneously through a gradient
     Parameters: color, speed
