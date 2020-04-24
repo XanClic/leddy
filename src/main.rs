@@ -316,8 +316,14 @@ impl Keyboard {
 }
 
 fn print_usage() {
-    eprintln!("Usage: leddy <[effect/]{{parameters...}}>
-Parameters are separated by slashes.
+    eprintln!("Usage: leddy [global switches] <[effect/]{{parameters...}}>
+
+Effect parameters are separated by slashes.
+
+
+Global switches are options that control leddy’s overall behavior:
+  --help: Prints this text and exits
+
 
 Effects:
   · all-keys (default): Set all keys’ colors.  Effectively the same as
@@ -384,14 +390,33 @@ fn count_chr(string: &str, chr: char) -> usize {
 }
 
 fn main() {
+    /* Skip argv[0] */
+    let argv: Vec<String> = std::env::args().skip(1).collect();
+
+    /* Look for global switches before trying to open the keyboard */
+    for arg in &argv {
+        if !arg.starts_with("-") {
+            continue;
+        }
+
+        match arg.as_str() {
+            "-h" | "-?" | "--help" => {
+                print_usage();
+                std::process::exit(0);
+            }
+
+            x => {
+                eprintln!("Unrecognized switch “{}”", x);
+                eprintln!("");
+                print_usage();
+                std::process::exit(1);
+            }
+        }
+    }
+
     let kbd = Keyboard::new();
 
-    let argv: Vec<String> = std::env::args().collect();
-
-    let mut arg_iter = argv.iter();
-    arg_iter.next(); /* skip argv[0] */
-
-    for arg in arg_iter {
+    for arg in &argv {
         let mut effect = None;
         let mut cp = ColorParam::Rainbow;
         let mut speed = 50;
