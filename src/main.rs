@@ -75,10 +75,6 @@ fn strip_prefix<'a>(string: &'a str, prefix: &str) -> Option<&'a str> {
     }
 }
 
-fn count_chr(string: &str, chr: char) -> usize {
-    string.chars().fold(0, |sum, c| sum + (c == chr) as usize)
-}
-
 fn main() {
     /* Skip argv[0] */
     let argv: Vec<String> = std::env::args().skip(1).collect();
@@ -126,38 +122,23 @@ fn main() {
                     } else if c == "random" || c == "randomized" {
                         cp = ColorParam::Randomized;
                     } else if let Some(rgb) = strip_prefix(c, "rgb:") {
-                        cp = ColorParam::Color(Color::from_str(rgb));
-                    } else if let Some(gradient) = strip_prefix(c, "gradient:") {
-                        let count_m_1 = std::cmp::max(count_chr(gradient, ','), 1);
+                        match Color::from_str(rgb) {
+                            Ok(c) => cp = ColorParam::Color(c),
 
-                        let mut grad_vec: Vec<(Color, u8)> =
-                            gradient.split(',').enumerate().map(|(index, gci)| {
-                                let mut gcis = gci.splitn(2, '@');
-                                let cols = gcis.next().unwrap();
-
-                                let coli =
-                                    if let Some(is) = gcis.next() {
-                                        is.parse().unwrap()
-                                    } else {
-                                        ((index * 100) / count_m_1) as u8
-                                    };
-
-                                (Color::from_str(cols), coli)
-                            }).collect();
-
-                        if grad_vec.len() < 1 {
-                            eprintln!("Gradients must have at least one color");
-                            std::process::exit(1);
-                        } else if grad_vec.len() > 10 {
-                            eprintln!("Gradients must not have more than ten colors");
-                            std::process::exit(1);
+                            Err(msg) => {
+                                eprintln!("{}", msg);
+                                std::process::exit(1);
+                            }
                         }
+                    } else if let Some(gradient) = strip_prefix(c, "gradient:") {
+                        match Gradient::from_str(gradient) {
+                            Ok(g) => cp = ColorParam::Gradient(g),
 
-                        grad_vec.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
-
-                        cp = ColorParam::Gradient(Gradient {
-                            colors: grad_vec,
-                        });
+                            Err(msg) => {
+                                eprintln!("{}", msg);
+                                std::process::exit(1);
+                            }
+                        }
                     } else if c == "stdin" {
                         eprintln!("Reading colors from stdin not yet supported");
                         std::process::exit(1);

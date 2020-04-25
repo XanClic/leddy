@@ -3,7 +3,7 @@ use rand::seq::SliceRandom;
 
 pub type Color = (u8, u8, u8);
 
-pub trait ColorMethods {
+pub trait ColorMethods: std::marker::Sized {
     const RED: Self;
     const GREEN: Self;
     const BLUE: Self;
@@ -12,7 +12,7 @@ pub trait ColorMethods {
     const CYAN: Self;
     const MAGENTA: Self;
 
-    fn from_str(s: &str) -> Self;
+    fn from_str(s: &str) -> Result<Self, String>;
 }
 
 pub struct Gradient {
@@ -43,7 +43,7 @@ impl ColorMethods for Color {
     const CYAN: Color       = (0x00, 0xff, 0xff);
     const MAGENTA: Color    = (0xff, 0x00, 0xff);
 
-    fn from_str(s: &str) -> Color {
+    fn from_str(s: &str) -> Result<Color, String> {
         fn hex_nibble(c: u8) -> u8 {
             if c >= 48 && c <= 57 {
                 c - 48
@@ -55,19 +55,19 @@ impl ColorMethods for Color {
         }
 
         if s.len() != 6 {
-            panic!("{} is not an RRGGBB value", s);
+            return Err(format!("{} is not an RRGGBB value", s));
         }
 
         let ls = s.to_ascii_lowercase().bytes().collect::<Vec<u8>>();
         for c in &ls {
             if !((*c >= 48 && *c <= 57) || (*c >= 97 && *c <= 102)) {
-                panic!("{} is not an RRGGBB value", s);
+                return Err(format!("{} is not an RRGGBB value", s));
             }
         }
 
-        ((hex_nibble(ls[0]) << 4) | hex_nibble(ls[1]),
-         (hex_nibble(ls[2]) << 4) | hex_nibble(ls[3]),
-         (hex_nibble(ls[4]) << 4) | hex_nibble(ls[5]))
+        Ok(((hex_nibble(ls[0]) << 4) | hex_nibble(ls[1]),
+            (hex_nibble(ls[2]) << 4) | hex_nibble(ls[3]),
+            (hex_nibble(ls[4]) << 4) | hex_nibble(ls[5])))
     }
 }
 
@@ -147,6 +147,85 @@ impl ColorParam {
 
 
 impl Gradient {
+    pub fn from_str(s: &str) -> Result<Gradient, String> {
+        let mut proto_vec = Vec::<(Color, Option<u8>)>::new();
+
+        for gci in s.split(',') {
+            let mut gcis = gci.splitn(2, '@');
+            let cols = gcis.next().unwrap();
+
+            let coli =
+                if let Some(is) = gcis.next() {
+                    let val = is.parse().unwrap();
+                    if val > 100 {
+                        return Err(String::from("Gradient positions must not \
+                                                 exceed 100"));
+                    }
+                    Some(val)
+                } else {
+                    None
+                };
+
+            let col = Color::from_str(cols)?;
+            proto_vec.push((col, coli));
+        }
+
+        if proto_vec.len() < 1 {
+            return Err(String::from("Gradients must have at least one color"));
+        } else if proto_vec.len() > 10 {
+            return Err(String::from("Gradients cannot have more than ten \
+                                     colors"));
+        }
+
+        if let Some(x) = proto_vec.first_mut() {
+            if x.1.is_none() {
+                x.1 = Some(0);
+            }
+        }
+        if let Some(x) = proto_vec.last_mut() {
+            if x.1.is_none() {
+                x.1 = Some(100);
+            }
+        }
+
+        let mut base_pos = 0;
+        let mut diff = 0;
+        let mut diff_i = 0;
+        let mut in_diff_i = 0;
+
+        for i in 0..proto_vec.len() {
+            if let Some(pos) = proto_vec[i].1 {
+                base_pos = pos;
+                diff_i = 0;
+                in_diff_i = 0;
+            } else {
+                if in_diff_i == 0 {
+                    let mut j = i + 1;
+                    /* We did set the last position to Some(100) */
+                    while proto_vec[j].1.is_none() {
+                        j += 1;
+                    }
+                    diff = proto_vec[j].1.unwrap() as isize - base_pos as isize;
+                    diff_i = (j - i + 1) as isize;
+                }
+                in_diff_i += 1;
+
+                let itpl_pos = base_pos +
+                               (in_diff_i * diff / diff_i) as u8;
+
+                proto_vec[i].1 = Some(itpl_pos);
+            }
+        }
+
+        let mut gradient = Gradient {
+            colors: proto_vec.iter().map(|cp| (cp.0, cp.1.unwrap())).collect(),
+        };
+
+        gradient.colors.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+
+        Ok(gradient)
+    }
+
     pub fn serialize(&self, to: &mut [u8]) {
         let len = self.colors.len();
 
