@@ -22,8 +22,9 @@ Some examples for effects:
   drops flow slowly over your keyboard
 * `leddy gradient/color=gradient:ff0000@0,00ff00@70,0000ff@100`: Creates kind of
   a rainbow gradient from left to right, where green is right of center
-* `leddy fade/color=gradient:ff8080@0,3080ff@50,ff8080@100`: Fades between pink
-  and blue (note that the color for positions 0 and 100 is the same)
+* `leddy fade/color=gradient:ff8080,3080ff,ff8080`: Fades between pink
+  and blue (note that the positions are distributed evenly when omitted; also
+  note that the color for positions 0 and 100 is the same)
 
 udev rule
 ---------
