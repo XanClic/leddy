@@ -145,6 +145,14 @@ fn main() {
                                 (Color::from_str(cols), coli)
                             }).collect();
 
+                        if grad_vec.len() < 1 {
+                            eprintln!("Gradients must have at least one color");
+                            std::process::exit(1);
+                        } else if grad_vec.len() > 10 {
+                            eprintln!("Gradients must not have more than ten colors");
+                            std::process::exit(1);
+                        }
+
                         grad_vec.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
 
                         cp = ColorParam::Gradient(Gradient {
