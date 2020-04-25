@@ -130,21 +130,25 @@ fn main() {
                     } else if let Some(gradient) = strip_prefix(c, "gradient:") {
                         let count_m_1 = std::cmp::max(count_chr(gradient, ','), 1);
 
+                        let mut grad_vec: Vec<(Color, u8)> =
+                            gradient.split(',').enumerate().map(|(index, gci)| {
+                                let mut gcis = gci.splitn(2, '@');
+                                let cols = gcis.next().unwrap();
+
+                                let coli =
+                                    if let Some(is) = gcis.next() {
+                                        is.parse().unwrap()
+                                    } else {
+                                        ((index * 100) / count_m_1) as u8
+                                    };
+
+                                (Color::from_str(cols), coli)
+                            }).collect();
+
+                        grad_vec.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+
                         cp = ColorParam::Gradient(Gradient {
-                            colors:
-                                gradient.split(',').enumerate().map(|(index, gci)| {
-                                    let mut gcis = gci.splitn(2, '@');
-                                    let cols = gcis.next().unwrap();
-
-                                    let coli =
-                                        if let Some(is) = gcis.next() {
-                                            is.parse().unwrap()
-                                        } else {
-                                            ((index * 100) / count_m_1) as u8
-                                        };
-
-                                    (Color::from_str(cols), coli)
-                                }).collect()
+                            colors: grad_vec,
                         });
                     } else if c == "stdin" {
                         eprintln!("Reading colors from stdin not yet supported");
