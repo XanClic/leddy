@@ -33,7 +33,7 @@ You may put your desired effect into a configuration file like
 `/etc/leddy.conf`, e.g.:
 
 ```
-gradient/color=gradient:ff8080@0,ff8080@19,3080ff@20,3080ff@39,d0fff0@40,d0fff0@60,3080ff@61,3080ff@80,ff8080@81,ff8080@100
+gradient/color=gradient:ff8080@0,ff8080@20,3080ff@20,3080ff@40,d0fff0@40,d0fff0@60,3080ff@60,3080ff@80,ff8080@80,ff8080@100
 ```
 
 Then you can let `xargs` pass its content to leddy in a udev rule, like so:
