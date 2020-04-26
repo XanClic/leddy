@@ -5,9 +5,39 @@ use crate::keyboard::Keyboard;
 
 
 pub fn screen_capture(kbd: &mut Keyboard, _param_str: &String) {
+    let mut xrandr =
+        match Command::new("xrandr")
+                .arg("--query")
+                .stdin(Stdio::null())
+                .stdout(Stdio::piped())
+                .stderr(Stdio::null())
+                .spawn()
+        {
+            Ok(p) => p,
+
+            Err(e) => {
+                eprintln!("Failed to launch xrandr: {}", e);
+                std::process::exit(1);
+            }
+        };
+
+    let mut xrandr_output = String::new();
+    xrandr.stdout.as_mut().unwrap().read_to_string(&mut xrandr_output).unwrap();
+
+    xrandr.wait().unwrap();
+
+    let xrandr_res =
+        xrandr_output.splitn(2, ", current ").skip(1).next().unwrap();
+
+    let mut xrandr_res_it = xrandr_res.splitn(2, " x ");
+    let xrandr_w: usize = xrandr_res_it.next().unwrap().parse().unwrap();
+
+    let mut xrandr_res_it = xrandr_res_it.next().unwrap().splitn(2, ", ");
+    let xrandr_h: usize = xrandr_res_it.next().unwrap().parse().unwrap();
+
     let ffmpeg =
         match Command::new("ffmpeg")
-                .arg("-video_size").arg("1920x1200")
+                .arg("-video_size").arg(format!("{}x{}", xrandr_w, xrandr_h))
                 .arg("-framerate").arg("60")
                 .arg("-f").arg("x11grab")
                 .arg("-i").arg(":0.0+0,0")
