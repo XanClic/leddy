@@ -1,16 +1,30 @@
-04 <effect - 1>: Save changes for <effect>?
+04 <profile>: Switch to the given profile (1..4)
 
-0x07/0xfe: “Still alive” during preview, probably
-           (So the changes get auto-reverted when the app crashes)
+07/fe: “Still alive” during preview, probably
+       (So the changes get auto-reverted when the app crashes)
 
-0f 03 {<RGB>}: Set all 106 keys’ colors
-0f 06 <mode> <RGB> <speed>: Pulse
-0f 07 <mode> <RGB> <speed> <direction>: Wave
-0f 09 <mode> <RGB> <speed> <when>: Reactive
-0f 0a <mode> <RGB> <speed> <when>: Reactive ripple
-0f 0b <mode> <RGB> <speed> <direction>: Rain
-0f 0c <gradient>: Gradient
-0f 0d <mode> <gradient> <speed>: Fade
+13: Save changes to profile?
+
+05 <profile> 02 <effect specification>: Set the given profile’s effect
+    Even if <profile> is the current profile, the keyboard’s active effect will
+    not change immediately.  To do so, one needs to explicitly switch to
+    <profile> with 04 <profile> (probably preceded by 13).
+    Otherwise, it will take a couple of seconds for the change to be applied.
+    (Similarly to how a temporary demonstration is auto-reverted.)
+
+0f <effect specification>: Temporarily demonstrate an effect
+    After a couple of seconds, the keyboard will auto-revert to the current
+    profile’s effect, unless 07/fe are received in the meantime.
+
+Effect specifications:
+03 {<RGB>}: Set all 106 keys’ colors
+06 <mode> <RGB> <speed>: Pulse
+07 <mode> <RGB> <speed> <direction>: Wave
+09 <mode> <RGB> <speed> <when>: Reactive
+0a <mode> <RGB> <speed> <when>: Reactive ripple
+0b <mode> <RGB> <speed> <direction>: Rain
+0c <gradient>: Gradient
+0d <mode> <gradient> <speed>: Fade
 
 RGB: <red> <green> <blue> (each 0..255)
 
