@@ -25,6 +25,10 @@ Some examples for effects:
 * `leddy fade/color=gradient:ff8080,3080ff,ff8080`: Fades between pink
   and blue (note that the positions are distributed evenly when omitted; also
   note that the color for positions 0 and 100 is the same)
+* `leddy --profile=2`: Switch to profile 2 (note that without the `--profile`
+  switch (or `-p` for short), leddy will always switch to and modify profile 1).
+* `leddy screen-capture`: Lets ffmpeg take 18×6 pixel screenshots and displays
+  them on the keyboard (in 60 FPS).
 
 udev rule
 ---------
@@ -44,3 +48,7 @@ ACTION=="add", SUBSYSTEM=="usb", ATTRS{idVendor}=="2f0e", ATTRS{idProduct}=="010
 
 Store this as a file in `/etc/udev/rules.d`, and your customization should be
 applied on system startup or whenever the keyboard is plugged in.
+
+Considering that the keyboard does have memory to store every profile’s setting,
+this generally shouldn’t be necessary, though (apart from maybe switching the
+active profile).
