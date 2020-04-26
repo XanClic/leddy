@@ -4,14 +4,12 @@ use crate::types::{ColorParam, Direction, KeyMap};
 
 pub struct Keyboard {
     dev: HidDevice,
-    make_changes_permanent: bool,
+    color_cmd_prefix: Vec<u8>,
+    profile: u8,
 }
 
 
 impl Keyboard {
-    const COLOR_TEMP: [u8; 1] = [0x0f];
-    const COLOR_PERM: [u8; 3] = [0x05, 0x01, 0x02];
-
     pub fn new() -> Self {
         let hidapi = HidApi::new().unwrap();
 
@@ -37,17 +35,23 @@ impl Keyboard {
 
         Keyboard {
             dev: dev,
-            make_changes_permanent: true,
+            color_cmd_prefix: vec![0x05, 0x01, 0x02],
+            profile: 1,
         }
     }
 
     pub fn software_effect_start(&mut self) {
-        self.make_changes_permanent = false;
+        self.color_cmd_prefix = vec![0x0f];
     }
 
     pub fn software_effect_end(&mut self) {
-        self.make_changes_permanent = true;
-        self.send_req(&[0x04], &[0x01]);
+        self.color_cmd_prefix = vec![0x05, self.profile, 0x02];
+        self.send_req(&[0x04], &[self.profile]);
+    }
+
+    pub fn set_profile(&mut self, profile: u8) {
+        self.profile = profile;
+        self.software_effect_end();
     }
 
     pub fn send_req(&self, prefix: &[u8], raw_data: &[u8]) {
@@ -95,27 +99,16 @@ impl Keyboard {
             /* Save changes? */
             self.send_req(&[0x13], &[]);
             /* Show profile 1 */
-            self.send_req(&[0x04], &[0x01]);
-        }
-    }
-
-    fn color_cmd_prefix(&self) -> &[u8] {
-        if self.make_changes_permanent {
-            &Self::COLOR_PERM
-        } else {
-            &Self::COLOR_TEMP
+            self.send_req(&[0x04], &[self.profile]);
         }
     }
 
     pub fn all_keys_raw(&self, raw_keys: &[u8]) {
-        let prefix: &[u8] =
-            if self.make_changes_permanent {
-                &[0x05, 0x01, 0x02, 0x03]
-            } else {
-                &[0x0f, 0x03]
-            };
-
-        self.send_req(&prefix, raw_keys);
+        if self.color_cmd_prefix[0] == 0x05 {
+            self.send_req(&[0x05, self.profile, 0x02, 0x03], raw_keys);
+        } else {
+            self.send_req(&[0x0f, 0x03], raw_keys);
+        }
     }
 
     pub fn all_keys(&self, keys: &KeyMap) {
@@ -125,7 +118,7 @@ impl Keyboard {
     pub fn pulse(&self, cp: &ColorParam, speed: u8) {
         let rgb = cp.rgb();
 
-        self.send_req(self.color_cmd_prefix(),
+        self.send_req(self.color_cmd_prefix.as_slice(),
                       &[0x06,
                         cp.mode(),
                         rgb.0, rgb.1, rgb.2,
@@ -135,7 +128,7 @@ impl Keyboard {
     pub fn wave(&self, cp: &ColorParam, speed: u8, direction: Direction) {
         let rgb = cp.rgb();
 
-        self.send_req(self.color_cmd_prefix(),
+        self.send_req(self.color_cmd_prefix.as_slice(),
                       &[0x07,
                         cp.mode(),
                         rgb.0, rgb.1, rgb.2,
@@ -146,7 +139,7 @@ impl Keyboard {
     pub fn reactive(&self, cp: &ColorParam, speed: u8, keyup: bool) {
         let rgb = cp.rgb();
 
-        self.send_req(self.color_cmd_prefix(),
+        self.send_req(self.color_cmd_prefix.as_slice(),
                       &[0x09,
                         cp.mode(),
                         rgb.0, rgb.1, rgb.2,
@@ -157,7 +150,7 @@ impl Keyboard {
     pub fn reactive_ripple(&self, cp: &ColorParam, speed: u8, keyup: bool) {
         let rgb = cp.rgb();
 
-        self.send_req(self.color_cmd_prefix(),
+        self.send_req(self.color_cmd_prefix.as_slice(),
                       &[0x0a,
                         cp.mode(),
                         rgb.0, rgb.1, rgb.2,
@@ -175,7 +168,7 @@ impl Keyboard {
                 _ => cp.mode()
             };
 
-        self.send_req(self.color_cmd_prefix(),
+        self.send_req(self.color_cmd_prefix.as_slice(),
                       &[0x0b,
                         mode,
                         rgb.0, rgb.1, rgb.2,
@@ -188,7 +181,7 @@ impl Keyboard {
 
         req[0] = 0x0c;
         cp.gradient().serialize(&mut req[1..42]);
-        self.send_req(self.color_cmd_prefix(), &req);
+        self.send_req(self.color_cmd_prefix.as_slice(), &req);
     }
 
     pub fn fade(&self, cp: &ColorParam, speed: u8) {
@@ -199,7 +192,7 @@ impl Keyboard {
         cp.gradient().serialize(&mut req[2..43]);
         req[43] = speed;
 
-        self.send_req(self.color_cmd_prefix(), &req);
+        self.send_req(self.color_cmd_prefix.as_slice(), &req);
     }
 }
 

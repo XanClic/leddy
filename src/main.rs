@@ -14,59 +14,99 @@ Effect parameters are separated by slashes.
 
 
 Global switches are options that control leddy’s overall behavior:
-  --help: Prints this text and exits
+  --help, -h
+        Prints this text and exits
+
+  --profile=<profile>, -p=<profile>
+        Selects the profile to use.
+
+        (Default: 1)
 
 
 Effects:
-  · all-keys (default): Set all keys’ colors.  Effectively the same as
-                        “gradient”, unless color=stdin.  Then, RGB values are
-                        read from stdin (format RRGGBB in hex, separated by LF).
-    Parameters: color
+  · all-keys (default)
+        Set all keys’ colors.  Effectively the same as “gradient”, unless
+        color=stdin.  Then, RGB values are read from stdin (format RRGGBB in
+        hex, separated by LF).
 
-  · pulse: Turn all LEDs on and off in a pulsing fashion
-    Parameters: color, speed
+        Parameters: color
 
-  · wave: Activate LEDs like a wave rolling over the keyboard
-    Parameters: color, speed, direction
+  · pulse
+        Turn all LEDs on and off in a pulsing fashion
 
-  · reactive: Activate an LED when its respective key is pressed/released
-    Parameters: color, speed, keyup/keydown
+        Parameters: color, speed
 
-  · reactive-ripple: Activate sourrounding LEDs when a key is pressed/released
-                     (sending a rippling wave over the keyboard)
-    Parameters: color, speed, keyup/keydown
+  · wave
+        Activate LEDs like a wave rolling over the keyboard
 
-  · rain: Like wave, but activate only a small number of random LEDs per
-          row/column
-    Parameters: color, speed, direction
+        Parameters: color, speed, direction
 
-  · gradient: Create a static gradient (left to right)
-    Parameters: color
+  · reactive
+        Activate an LED when its respective key is pressed/released
 
-  · fade: Fade all LEDs simultaneously through a gradient
-    Parameters: color, speed
+        Parameters: color, speed, keyup/keydown
+
+  · reactive-ripple
+        Activate sourrounding LEDs when a key is pressed/released
+        (sending a rippling wave over the keyboard)
+
+        Parameters: color, speed, keyup/keydown
+
+  · rain
+        Like wave, but activate only a small number of random LEDs per
+        row/column
+
+        Parameters: color, speed, direction
+
+  · gradient
+        Create a static gradient (left to right)
+
+        Parameters: color
+
+  · fade
+        Fade all LEDs simultaneously through a gradient
+
+        Parameters: color, speed
+
+  · And custom software effects, see below.
+
 
 Parameters:
-  · color=<color parameter>: Sets the effect color
-    · rainbow: A rainbow
-    · random[ized]: Random colors, often on the rainbow spectrum
-    · rgb:RRGGBB: A single color by its HTML notation
-    · gradient:{{RRGGBB@index,}}: A gradient (up to ten colors),
-                                indices are in the [0, 100] range
-                                (only works for “gradient” and “fade”)
-    · stdin (only for “all-keys”): Read all keys’ colors from stdin
-    (Default: rainbow)
+  · color=<color parameter>
+        Sets the effect color:
+        · rainbow (default)
+              A rainbow
+        · random[ized]
+              Random colors, often on the rainbow spectrum
+        · rgb:RRGGBB
+              A single color by its HTML notation
+        · gradient:{{RRGGBB@index,}}
+              A gradient (up to ten colors), indices are in the [0, 100] range
+              (only works for “gradient” and “fade”)
+        · stdin (only for “all-keys”)
+              Read all keys’ colors from stdin
 
-  · speed=<0..100>: Sets an effect’s speed.  Some effects may work with speeds
-                    above 100.
-    (Default: 50)
+  · speed=<0..100>
+        Sets an effect’s speed.  Some effects may work with speeds above 100.
 
-  · direction=<right|left|down|up>: Sets some effects’ target direction (i.e.,
-                                    “right” means from left to right, etc.)
-    (Default: right)
+        (Default: 50)
 
-  · keyup/keydown: These choose the trigger event for the “reactive” events.
-    (Default: keydown)");
+  · direction=<right|left|down|up>
+        Sets some effects’ target direction (i.e., “right” means from left to
+        right, etc.)
+
+        (Default: right)
+
+  · keyup/keydown
+        These choose the trigger event for the “reactive” events.
+
+        (Default: keydown)
+
+
+Software effects:
+  · screen-capture
+        Captures the screen (with ffmpeg) and mirrors it to the keyboard (scaled
+        down to 18×6)");
 }
 
 fn strip_prefix<'a>(string: &'a str, prefix: &str) -> Option<&'a str> {
@@ -80,6 +120,7 @@ fn strip_prefix<'a>(string: &'a str, prefix: &str) -> Option<&'a str> {
 fn main() {
     /* Skip argv[0] */
     let argv: Vec<String> = std::env::args().skip(1).collect();
+    let mut profile = 1;
 
     /* Look for global switches before trying to open the keyboard */
     for arg in &argv {
@@ -87,10 +128,38 @@ fn main() {
             continue;
         }
 
-        match arg.as_str() {
+        let mut arg_split = arg.splitn(2, "=");
+
+        match arg_split.next().unwrap() {
             "-h" | "-?" | "--help" => {
                 print_usage();
                 std::process::exit(0);
+            }
+
+            "-p" | "--profile" => {
+                let profile_str =
+                    match arg_split.next() {
+                        Some(x) => x,
+                        None => {
+                            eprintln!("--profile requires an argument");
+                            std::process::exit(1);
+                        }
+                    };
+
+                profile =
+                    match profile_str.parse::<u8>() {
+                        Ok(x) => x,
+                        Err(e) => {
+                            eprintln!("{} is not a valid 8-bit integer: {}",
+                                      profile_str, e);
+                            std::process::exit(1);
+                        }
+                    };
+
+                if profile < 1 || profile > 4 {
+                    eprintln!("Profile index must be between 1 and 4 (incl.)");
+                    std::process::exit(1);
+                }
             }
 
             x => {
@@ -103,8 +172,13 @@ fn main() {
     }
 
     let mut kbd = Keyboard::new();
+    kbd.set_profile(profile);
 
     for arg in &argv {
+        if arg.starts_with("-") {
+            continue;
+        }
+
         let mut effect = None;
         let mut cp = ColorParam::Rainbow;
         let mut speed = 50;
