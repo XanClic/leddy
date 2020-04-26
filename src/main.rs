@@ -1,7 +1,9 @@
 mod keyboard;
+mod software_effects;
 mod types;
 
 use keyboard::Keyboard;
+use software_effects::screen_capture::screen_capture;
 use types::{Color, ColorParam, ColorMethods, Direction, Gradient, KeyMap};
 
 
@@ -100,7 +102,7 @@ fn main() {
         }
     }
 
-    let kbd = Keyboard::new();
+    let mut kbd = Keyboard::new();
 
     for arg in &argv {
         let mut effect = None;
@@ -184,6 +186,13 @@ fn main() {
                 _ => {
                     if effect.is_none() {
                         effect = Some(pkey);
+
+                        /* No need to continue parsing parameters for
+                         * software effects */
+                        match pkey {
+                            "screen-capture" => break,
+                            _ => (),
+                        }
                     } else {
                         eprintln!("Unrecognized parameter key “{}”", pkey);
                         std::process::exit(1);
@@ -207,6 +216,12 @@ fn main() {
             "rain"              => kbd.rain(&cp, speed, direction),
             "gradient"          => kbd.gradient(&cp),
             "fade"              => kbd.fade(&cp, speed),
+
+            "screen-capture" => {
+                kbd.software_effect_start();
+                screen_capture(&mut kbd, &arg);
+                kbd.software_effect_end();
+            }
 
             x => {
                 eprintln!("Unrecognized effect “{}”", x);

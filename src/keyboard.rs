@@ -41,6 +41,15 @@ impl Keyboard {
         }
     }
 
+    pub fn software_effect_start(&mut self) {
+        self.make_changes_permanent = false;
+    }
+
+    pub fn software_effect_end(&mut self) {
+        self.make_changes_permanent = true;
+        self.send_req(&[0x04], &[0x01]);
+    }
+
     pub fn send_req(&self, prefix: &[u8], raw_data: &[u8]) {
         let plen = prefix.len();
         let len = raw_data.len() + plen;
