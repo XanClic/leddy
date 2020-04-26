@@ -2,7 +2,7 @@ mod keyboard;
 mod types;
 
 use keyboard::Keyboard;
-use types::{Color, ColorParam, ColorMethods, Direction, Gradient};
+use types::{Color, ColorParam, ColorMethods, Direction, Gradient, KeyMap};
 
 
 fn print_usage() {
@@ -140,8 +140,14 @@ fn main() {
                             }
                         }
                     } else if c == "stdin" {
-                        eprintln!("Reading colors from stdin not yet supported");
-                        std::process::exit(1);
+                        match KeyMap::from_stdin() {
+                            Ok(km) => cp = ColorParam::PerKey(km),
+
+                            Err(msg) => {
+                                eprintln!("{}", msg);
+                                std::process::exit(1);
+                            }
+                        }
                     } else {
                         eprintln!("Unrecognized color parameter “{}”", c);
                         std::process::exit(1);
@@ -187,7 +193,13 @@ fn main() {
         }
 
         match effect.unwrap_or("all-keys") {
-            "all-keys"          => kbd.gradient(&cp),
+            "all-keys" => {
+                match cp {
+                    ColorParam::PerKey(km) => kbd.all_keys(&km),
+                    cp => kbd.gradient(&cp),
+                }
+            }
+
             "pulse"             => kbd.pulse(&cp, speed),
             "wave"              => kbd.wave(&cp, speed, direction),
             "reactive"          => kbd.reactive(&cp, speed, keyup),

@@ -1,9 +1,13 @@
 use rand::seq::SliceRandom;
+use std::io::BufRead;
 
 
 pub type Color = (u8, u8, u8);
 
 pub trait ColorMethods: std::marker::Sized {
+    const BLACK: Self;
+    const WHITE: Self;
+
     const RED: Self;
     const GREEN: Self;
     const BLUE: Self;
@@ -19,11 +23,17 @@ pub struct Gradient {
     pub colors: Vec<(Color, u8)>,
 }
 
+pub struct KeyMap {
+    pub map: Vec<Color>,
+}
+
 pub enum ColorParam {
     Color(Color),
     Rainbow,
     Randomized,
     Gradient(Gradient),
+
+    PerKey(KeyMap),
 }
 
 pub enum Direction {
@@ -35,6 +45,9 @@ pub enum Direction {
 
 
 impl ColorMethods for Color {
+    const BLACK: Color      = (0x00, 0x00, 0x00);
+    const WHITE: Color      = (0xff, 0xff, 0xff);
+
     const RED: Color        = (0xff, 0x00, 0x00);
     const GREEN: Color      = (0x00, 0xff, 0x00);
     const BLUE: Color       = (0x00, 0x00, 0xff);
@@ -79,6 +92,8 @@ impl ColorParam {
             ColorParam::Rainbow => 1,
             ColorParam::Randomized => 2,
             ColorParam::Gradient(_) => 3,
+
+            ColorParam::PerKey(_) => 0,
         }
     }
 
@@ -88,6 +103,20 @@ impl ColorParam {
             ColorParam::Rainbow => (0, 0, 0),
             ColorParam::Randomized => (0, 0, 0),
             ColorParam::Gradient(g) => g.colors[0].0,
+
+            ColorParam::PerKey(pk) => {
+                let mut color = (0u32, 0u32, 0u32);
+
+                for c in &pk.map {
+                    color.0 += c.0 as u32;
+                    color.1 += c.1 as u32;
+                    color.2 += c.2 as u32;
+                }
+
+                ((color.0 / pk.map.len() as u32) as u8,
+                 (color.1 / pk.map.len() as u32) as u8,
+                 (color.2 / pk.map.len() as u32) as u8)
+            }
         }
     }
 
@@ -139,6 +168,43 @@ impl ColorParam {
             ColorParam::Gradient(g) => {
                 Gradient {
                     colors: g.colors.clone()
+                }
+            }
+
+            ColorParam::PerKey(pk) => {
+                let mut i = 0;
+                let mut gc = vec![
+                    (Color::BLACK,   0),
+                    (Color::BLACK,  11),
+                    (Color::BLACK,  22),
+                    (Color::BLACK,  33),
+                    (Color::BLACK,  44),
+                    (Color::BLACK,  56),
+                    (Color::BLACK,  67),
+                    (Color::BLACK,  78),
+                    (Color::BLACK,  89),
+                    (Color::BLACK, 100)
+                ];
+
+                for gci in 0..10 {
+                    let end_i = (gci * pk.map.len() + 5) / 10;
+                    let mut color = (0u32, 0u32, 0u32);
+                    let diff_i = (end_i - i) as u32;
+
+                    while i < end_i {
+                        color.0 += pk.map[i].0 as u32;
+                        color.1 += pk.map[i].1 as u32;
+                        color.2 += pk.map[i].2 as u32;
+                        i += 1;
+                    }
+
+                    (gc[gci].0).0 = (color.0 / diff_i) as u8;
+                    (gc[gci].0).1 = (color.1 / diff_i) as u8;
+                    (gc[gci].0).2 = (color.2 / diff_i) as u8;
+                }
+
+                Gradient {
+                    colors: gc
                 }
             }
         }
@@ -210,8 +276,8 @@ impl Gradient {
                 }
                 in_diff_i += 1;
 
-                let itpl_pos = base_pos +
-                               (in_diff_i * diff / diff_i) as u8;
+                let itpl_pos = (base_pos as isize +
+                                (in_diff_i * diff / diff_i)) as u8;
 
                 proto_vec[i].1 = Some(itpl_pos);
             }
@@ -249,6 +315,35 @@ impl Gradient {
             to[i * 4 + 3] = 0;
             to[i * 4 + 4] = 0;
             i += 1;
+        }
+    }
+}
+
+
+impl KeyMap {
+    pub fn from_stdin() -> Result<KeyMap, String> {
+        let mut map = Vec::with_capacity(106);
+        for _ in 0..106 {
+            map.push(Color::BLACK);
+        }
+
+        for (i, line_opt) in std::io::stdin().lock().lines().enumerate() {
+            let line =
+                match line_opt {
+                    Ok(l) => l,
+                    Err(e) => return Err(format!("Read error: {}", e)),
+                };
+
+            map[i] = Color::from_str(&line)?;
+        }
+
+        Ok(KeyMap { map: map })
+    }
+
+    pub fn raw(&self) -> &[u8] {
+        unsafe {
+            std::slice::from_raw_parts(self.map.as_ptr() as *const u8,
+                                       self.map.len() * 3)
         }
     }
 }
