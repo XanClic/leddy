@@ -15,8 +15,8 @@ Examples
 
 Some examples for effects:
 * `leddy color=rgb:ff4000`: Colors the whole keyboard orange
-* `leddy reactive-ripple/keydown`: Creates a ripple (in a random color) whenever
-  a key is released
+* `leddy reactive-ripple/keyup`: Creates a ripple (in changing colors,
+  following the rainbow pattern) whenever a key is released
 * `leddy wave/color=rainbow`: Lets a rainbow roll over the keyboard
 * `leddy rain/direction=down/speed=20/color=rgb:40ff00`: Lets bright green rain
   drops flow slowly over your keyboard
