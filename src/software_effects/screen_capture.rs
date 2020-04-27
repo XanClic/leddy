@@ -6,11 +6,20 @@ use crate::check_superfluous_params;
 use crate::keyboard::Keyboard;
 
 
-pub fn screen_capture(kbd: &Keyboard, params: HashMap<&str, &str>)
-    -> Result<(), String>
+fn usize_param(params: &mut HashMap<&str, &str>, name: &str, default: usize)
+    -> Result<usize, String>
 {
-    check_superfluous_params(params)?;
+    if let Some(val) = params.remove(name) {
+        match val.parse() {
+            Ok(x) => Ok(x),
+            Err(e) => Err(format!("Invalid {} value “{}”: {}", name, val, e)),
+        }
+    } else {
+        Ok(default)
+    }
+}
 
+fn xrandr_res() -> (usize, usize) {
     let mut xrandr =
         match Command::new("xrandr")
                 .arg("--query")
@@ -39,15 +48,33 @@ pub fn screen_capture(kbd: &Keyboard, params: HashMap<&str, &str>)
     let xrandr_w: usize = xrandr_res_it.next().unwrap().parse().unwrap();
 
     let mut xrandr_res_it = xrandr_res_it.next().unwrap().splitn(2, ", ");
-    let xrandr_h: usize = xrandr_res_it.next().unwrap().parse().unwrap();
+    let xrandr_h = xrandr_res_it.next().unwrap().parse().unwrap();
+
+    (xrandr_w, xrandr_h)
+}
+
+pub fn screen_capture(kbd: &Keyboard, mut params: HashMap<&str, &str>)
+    -> Result<(), String>
+{
+    let (xrw, xrh) = xrandr_res();
+
+    let fps = usize_param(&mut params, "fps", 60)?;
+    let x = usize_param(&mut params, "x", 0)?;
+    let y = usize_param(&mut params, "y", 0)?;
+    let w = usize_param(&mut params, "w", xrw.saturating_sub(x))?;
+    let h = usize_param(&mut params, "h", xrh.saturating_sub(y))?;
+    let display = params.remove("display").unwrap_or(":0");
+    let scale_alg = params.remove("scale-algorithm").unwrap_or("area");
+
+    check_superfluous_params(params)?;
 
     let ffmpeg =
         match Command::new("ffmpeg")
-                .arg("-video_size").arg(format!("{}x{}", xrandr_w, xrandr_h))
-                .arg("-framerate").arg("60")
+                .arg("-video_size").arg(format!("{}x{}", w, h))
+                .arg("-framerate").arg(format!("{}", fps))
                 .arg("-f").arg("x11grab")
-                .arg("-i").arg(":0.0+0,0")
-                .arg("-vf").arg("scale=18x6:sws_flags=area")
+                .arg("-i").arg(format!("{}+{},{}", display, x, y))
+                .arg("-vf").arg(format!("scale=18x6:sws_flags={}", scale_alg))
                 .arg("-vcodec").arg("rawvideo")
                 .arg("-f").arg("rawvideo")
                 .arg("pipe:1")

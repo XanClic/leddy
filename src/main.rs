@@ -108,7 +108,23 @@ Parameters:
 Software effects:
   · screen-capture
         Captures the screen (with ffmpeg) and mirrors it to the keyboard (scaled
-        down to 18×6)");
+        down to 18×6)
+
+        Parameters:
+          · fps=<integer>
+                Rate with which to capture screenshots (default: 60)
+          · x=<integer>
+                X offset of the captured rectangle (default: 0)
+          · y=<integer>
+                Y offset of the captured rectangle (default: 0)
+          · w=<integer>
+                Width of the captured rectangle (default: screen width)
+          · h=<integer>
+                Height of the captured rectangle (default: screen height)
+          · display=<$DISPLAY>
+                X11 display to capture (default: :0)
+          · scale-algorithm=<algorithm>
+                libswscale algorithm to use (default: area)");
 }
 
 fn strip_prefix<'a>(string: &'a str, prefix: &str) -> Option<&'a str> {
