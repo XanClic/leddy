@@ -1,10 +1,16 @@
+use std::collections::HashMap;
 use std::io::Read;
 use std::process::{Command, Stdio};
 
+use crate::check_superfluous_params;
 use crate::keyboard::Keyboard;
 
 
-pub fn screen_capture(kbd: &mut Keyboard, _param_str: &String) {
+pub fn screen_capture(kbd: &Keyboard, params: HashMap<&str, &str>)
+    -> Result<(), String>
+{
+    check_superfluous_params(params)?;
+
     let mut xrandr =
         match Command::new("xrandr")
                 .arg("--query")

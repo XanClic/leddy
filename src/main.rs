@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 mod keyboard;
 mod software_effects;
 mod types;
@@ -117,6 +119,195 @@ fn strip_prefix<'a>(string: &'a str, prefix: &str) -> Option<&'a str> {
     }
 }
 
+fn parse_color(color_param: &str) -> Result<ColorParam, String> {
+    if color_param == "rainbow" {
+        Ok(ColorParam::Rainbow)
+    } else if color_param == "random" || color_param == "randomized" {
+        Ok(ColorParam::Randomized)
+    } else if let Some(rgb) = strip_prefix(color_param, "rgb:") {
+        Ok(ColorParam::Color(Color::from_str(rgb)?))
+    } else if let Some(gradient) = strip_prefix(color_param, "gradient:") {
+        Ok(ColorParam::Gradient(Gradient::from_str(gradient)?))
+    } else if color_param == "stdin" {
+        Ok(ColorParam::PerKey(KeyMap::from_stdin()?))
+    } else {
+        Err(format!("Unrecognized color parameter “{}”", color_param))
+    }
+}
+
+fn parse_speed(speed_param: &str) -> Result<u8, String> {
+    match speed_param.parse() {
+        Ok(x) => Ok(x),
+        Err(e) => Err(format!("{} is not an 8-bit unsigned integer: {}",
+                              speed_param, e)),
+    }
+}
+
+fn parse_direction(dir_param: &str) -> Result<Direction, String> {
+    match dir_param {
+        "right" => Ok(Direction::Right),
+        "left"  => Ok(Direction::Left),
+        "down"  => Ok(Direction::Down),
+        "up"    => Ok(Direction::Up),
+
+        x => Err(format!("Invalid direction “{}”", x)),
+    }
+}
+
+fn parse_keyup(up_param: Option<&str>, down_param: Option<&str>)
+    -> Result<bool, String>
+{
+    if up_param.is_some() && down_param.is_some() {
+        Err(String::from("Cannot give both keyup and keydown"))
+    } else if up_param.is_some() {
+        Ok(true)
+    } else {
+        Ok(false)
+    }
+}
+
+pub fn check_superfluous_params(params: HashMap<&str, &str>)
+    -> Result<(), String>
+{
+    fn string_list(mut cum: Option<String>, k: &&str) -> Option<String> {
+        if let Some(mut cum_uwu) = cum.take() {
+            cum_uwu.push_str(format!(", “{}”", k).as_str());
+            Some(cum_uwu)
+        } else {
+            Some(format!("“{}”", k))
+        }
+    }
+
+    if let Some(sup_params_str) = params.keys().fold(None, string_list) {
+        Err(format!("Superfluous parameters: {}", sup_params_str))
+    } else {
+        Ok(())
+    }
+}
+
+
+fn do_all_keys(kbd: &Keyboard, mut params: HashMap<&str, &str>)
+    -> Result<(), String>
+{
+    let cp = parse_color(params.remove("color").unwrap_or("rainbow"))?;
+
+    check_superfluous_params(params)?;
+
+    match cp {
+        ColorParam::PerKey(km) => kbd.all_keys(&km),
+        _ => kbd.gradient(cp),
+    }
+
+    Ok(())
+}
+
+fn do_pulse(kbd: &Keyboard, mut params: HashMap<&str, &str>)
+    -> Result<(), String>
+{
+    let cp = parse_color(params.remove("color").unwrap_or("rainbow"))?;
+    let speed = parse_speed(params.remove("speed").unwrap_or("50"))?;
+
+    check_superfluous_params(params)?;
+
+    kbd.pulse(cp, speed);
+
+    Ok(())
+}
+
+fn do_wave(kbd: &Keyboard, mut params: HashMap<&str, &str>)
+    -> Result<(), String>
+{
+    let cp = parse_color(params.remove("color").unwrap_or("rainbow"))?;
+    let speed = parse_speed(params.remove("speed").unwrap_or("50"))?;
+    let dir = parse_direction(params.remove("direction").unwrap_or("right"))?;
+
+    check_superfluous_params(params)?;
+
+    kbd.wave(cp, speed, dir);
+
+    Ok(())
+}
+
+fn do_reactive(kbd: &Keyboard, mut params: HashMap<&str, &str>)
+    -> Result<(), String>
+{
+    let cp = parse_color(params.remove("color").unwrap_or("rainbow"))?;
+    let speed = parse_speed(params.remove("speed").unwrap_or("50"))?;
+    let keyup = parse_keyup(params.remove("keyup"), params.remove("keydown"))?;
+
+    check_superfluous_params(params)?;
+
+    kbd.reactive(cp, speed, keyup);
+
+    Ok(())
+}
+
+fn do_reactive_ripple(kbd: &Keyboard, mut params: HashMap<&str, &str>)
+    -> Result<(), String>
+{
+    let cp = parse_color(params.remove("color").unwrap_or("rainbow"))?;
+    let speed = parse_speed(params.remove("speed").unwrap_or("50"))?;
+    let keyup = parse_keyup(params.remove("keyup"), params.remove("keydown"))?;
+
+    check_superfluous_params(params)?;
+
+    kbd.reactive_ripple(cp, speed, keyup);
+
+    Ok(())
+}
+
+fn do_rain(kbd: &Keyboard, mut params: HashMap<&str, &str>)
+    -> Result<(), String>
+{
+    let cp = parse_color(params.remove("color").unwrap_or("randomized"))?;
+    let speed = parse_speed(params.remove("speed").unwrap_or("50"))?;
+    let dir = parse_direction(params.remove("direction").unwrap_or("right"))?;
+
+    check_superfluous_params(params)?;
+
+    kbd.rain(cp, speed, dir);
+
+    Ok(())
+}
+
+fn do_gradient(kbd: &Keyboard, mut params: HashMap<&str, &str>)
+    -> Result<(), String>
+{
+    let cp = parse_color(params.remove("color").unwrap_or("rainbow"))?;
+
+    check_superfluous_params(params)?;
+
+    kbd.gradient(cp);
+
+    Ok(())
+}
+
+fn do_fade(kbd: &Keyboard, mut params: HashMap<&str, &str>)
+    -> Result<(), String>
+{
+    let cp = parse_color(params.remove("color").unwrap_or("rainbow"))?;
+    let speed = parse_speed(params.remove("speed").unwrap_or("50"))?;
+
+    check_superfluous_params(params)?;
+
+    kbd.fade(cp, speed);
+
+    Ok(())
+}
+
+
+fn do_software_effect(kbd: &mut Keyboard, params: HashMap<&str, &str>,
+                      efn: fn(&Keyboard, HashMap<&str, &str>)
+                               -> Result<(), String>)
+    -> Result<(), String>
+{
+    kbd.software_effect_start();
+    let res = efn(kbd, params);
+    kbd.software_effect_end();
+    res
+}
+
+
 fn main() {
     /* Skip argv[0] */
     let argv: Vec<String> = std::env::args().skip(1).collect();
@@ -179,130 +370,51 @@ fn main() {
             continue;
         }
 
-        let mut effect = None;
-        let mut cp = ColorParam::Rainbow;
-        let mut speed = 50;
-        let mut direction = Direction::Right;
-        let mut keyup = false;
+        let mut effect = HashMap::<&str, &str>::new();
 
         for param in arg.split('/') {
             let mut ps = param.splitn(2, '=');
             let pkey = ps.next().unwrap();
 
-            match pkey {
-                "color" => {
-                    let c = ps.next().unwrap();
-
-                    if c == "rainbow" {
-                        cp = ColorParam::Rainbow;
-                    } else if c == "random" || c == "randomized" {
-                        cp = ColorParam::Randomized;
-                    } else if let Some(rgb) = strip_prefix(c, "rgb:") {
-                        match Color::from_str(rgb) {
-                            Ok(c) => cp = ColorParam::Color(c),
-
-                            Err(msg) => {
-                                eprintln!("{}", msg);
-                                std::process::exit(1);
-                            }
+            let old_val_opt =
+                match ps.next() {
+                    Some(pval) => effect.insert(pkey, pval),
+                    None => {
+                        if effect.contains_key("name") {
+                            effect.insert(pkey, "")
+                        } else {
+                            effect.insert("name", pkey)
                         }
-                    } else if let Some(gradient) = strip_prefix(c, "gradient:") {
-                        match Gradient::from_str(gradient) {
-                            Ok(g) => cp = ColorParam::Gradient(g),
-
-                            Err(msg) => {
-                                eprintln!("{}", msg);
-                                std::process::exit(1);
-                            }
-                        }
-                    } else if c == "stdin" {
-                        match KeyMap::from_stdin() {
-                            Ok(km) => cp = ColorParam::PerKey(km),
-
-                            Err(msg) => {
-                                eprintln!("{}", msg);
-                                std::process::exit(1);
-                            }
-                        }
-                    } else {
-                        eprintln!("Unrecognized color parameter “{}”", c);
-                        std::process::exit(1);
                     }
-                }
+                };
 
-                "speed" => {
-                    speed = ps.next().unwrap().parse().unwrap();
-                }
-
-                "direction" => {
-                    direction =
-                        match ps.next().unwrap() {
-                            "right" => Direction::Right,
-                            "left" => Direction::Left,
-                            "down" => Direction::Down,
-                            "up" => Direction::Up,
-
-                            x => {
-                                eprintln!("Unrecognized direction “{}”", x);
-                                std::process::exit(1);
-                            }
-                        }
-                }
-
-                "keyup" => {
-                    keyup = true;
-                }
-
-                "keydown" => {
-                    keyup = false;
-                }
-
-                _ => {
-                    if effect.is_none() {
-                        effect = Some(pkey);
-
-                        /* No need to continue parsing parameters for
-                         * software effects */
-                        match pkey {
-                            "screen-capture" => break,
-                            _ => (),
-                        }
-                    } else {
-                        eprintln!("Unrecognized parameter key “{}”", pkey);
-                        std::process::exit(1);
-                    }
-                }
+            if let Some(old_val) = old_val_opt {
+                eprintln!("Effect parameter “{}” already set to “{}”",
+                          pkey, old_val);
+                std::process::exit(1);
             }
         }
 
-        match effect.unwrap_or("all-keys") {
-            "all-keys" => {
-                match cp {
-                    ColorParam::PerKey(km) => kbd.all_keys(&km),
-                    cp => kbd.gradient(&cp),
-                }
-            }
+        let result =
+            match effect.remove("name").unwrap_or("all-keys") {
+                "all-keys"          => do_all_keys(&kbd, effect),
+                "pulse"             => do_pulse(&kbd, effect),
+                "wave"              => do_wave(&kbd, effect),
+                "reactive"          => do_reactive(&kbd, effect),
+                "reactive-ripple"   => do_reactive_ripple(&kbd, effect),
+                "rain"              => do_rain(&kbd, effect),
+                "gradient"          => do_gradient(&kbd, effect),
+                "fade"              => do_fade(&kbd, effect),
 
-            "pulse"             => kbd.pulse(&cp, speed),
-            "wave"              => kbd.wave(&cp, speed, direction),
-            "reactive"          => kbd.reactive(&cp, speed, keyup),
-            "reactive-ripple"   => kbd.reactive_ripple(&cp, speed, keyup),
-            "rain"              => kbd.rain(&cp, speed, direction),
-            "gradient"          => kbd.gradient(&cp),
-            "fade"              => kbd.fade(&cp, speed),
+                "screen-capture"    => do_software_effect(&mut kbd, effect,
+                                                          screen_capture),
 
-            "screen-capture" => {
-                kbd.software_effect_start();
-                screen_capture(&mut kbd, &arg);
-                kbd.software_effect_end();
-            }
+                x => Err(format!("Unrecognized effect “{}”", x)),
+            };
 
-            x => {
-                eprintln!("Unrecognized effect “{}”", x);
-                eprintln!("");
-                print_usage();
-                std::process::exit(1);
-            }
+        if let Err(e) = result {
+            eprintln!("{}", e);
+            std::process::exit(1);
         }
     }
 }

@@ -115,7 +115,7 @@ impl Keyboard {
         self.all_keys_raw(keys.raw());
     }
 
-    pub fn pulse(&self, cp: &ColorParam, speed: u8) {
+    pub fn pulse(&self, cp: ColorParam, speed: u8) {
         let rgb = cp.rgb();
 
         self.send_req(self.color_cmd_prefix.as_slice(),
@@ -125,7 +125,7 @@ impl Keyboard {
                         speed]);
     }
 
-    pub fn wave(&self, cp: &ColorParam, speed: u8, direction: Direction) {
+    pub fn wave(&self, cp: ColorParam, speed: u8, direction: Direction) {
         let rgb = cp.rgb();
 
         self.send_req(self.color_cmd_prefix.as_slice(),
@@ -136,7 +136,7 @@ impl Keyboard {
                         direction as u8]);
     }
 
-    pub fn reactive(&self, cp: &ColorParam, speed: u8, keyup: bool) {
+    pub fn reactive(&self, cp: ColorParam, speed: u8, keyup: bool) {
         let rgb = cp.rgb();
 
         self.send_req(self.color_cmd_prefix.as_slice(),
@@ -147,7 +147,7 @@ impl Keyboard {
                         !keyup as u8]);
     }
 
-    pub fn reactive_ripple(&self, cp: &ColorParam, speed: u8, keyup: bool) {
+    pub fn reactive_ripple(&self, cp: ColorParam, speed: u8, keyup: bool) {
         let rgb = cp.rgb();
 
         self.send_req(self.color_cmd_prefix.as_slice(),
@@ -158,7 +158,7 @@ impl Keyboard {
                         !keyup as u8]);
     }
 
-    pub fn rain(&self, cp: &ColorParam, speed: u8, direction: Direction) {
+    pub fn rain(&self, cp: ColorParam, speed: u8, direction: Direction) {
         let rgb = cp.rgb();
 
         /* This effect does not support rainbow mode */
@@ -176,7 +176,7 @@ impl Keyboard {
                         direction as u8]);
     }
 
-    pub fn gradient(&self, cp: &ColorParam) {
+    pub fn gradient(&self, cp: ColorParam) {
         let mut req = [0u8; 42];
 
         req[0] = 0x0c;
@@ -184,7 +184,7 @@ impl Keyboard {
         self.send_req(self.color_cmd_prefix.as_slice(), &req);
     }
 
-    pub fn fade(&self, cp: &ColorParam, speed: u8) {
+    pub fn fade(&self, cp: ColorParam, speed: u8) {
         let mut req = [0u8; 44];
 
         req[0] = 0x0d;
