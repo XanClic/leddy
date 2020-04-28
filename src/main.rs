@@ -61,9 +61,9 @@ Effects:
         Parameters: color, speed, direction
 
   · gradient
-        Create a static gradient (left to right)
+        Create a static gradient
 
-        Parameters: color
+        Parameters: color, direction
 
   · fade
         Fade all LEDs simultaneously through a gradient
@@ -286,16 +286,109 @@ fn do_rain(kbd: &Keyboard, mut params: HashMap<&str, &str>)
     Ok(())
 }
 
+fn do_vgradient(kbd: &Keyboard, cp: ColorParam, up: bool)
+    -> Result<(), String>
+{
+    let cv = cp.gradient().colors;
+
+    let mut raw_cv = Vec::<Color>::with_capacity(6);
+    for i in 0..6 {
+        let pos =
+            if up {
+                (5 - i) as f32 * (100.0 / 5.0)
+            } else {
+                i as f32 * (100.0 / 5.0)
+            };
+
+        let mut j = 0;
+        while j < cv.len() && (cv[j].1 as f32) < pos {
+            j += 1;
+        }
+
+        let col =
+            if j == cv.len() {
+                ((cv[j - 1].0).0,
+                 (cv[j - 1].0).1,
+                 (cv[j - 1].0).2)
+            } else if j == 0 {
+                ((cv[j].0).0,
+                 (cv[j].0).1,
+                 (cv[j].0).2)
+            } else {
+                let a = (pos - cv[j - 1].1 as f32)
+                      / (cv[j].1 - cv[j - 1].1) as f32;
+
+                (((1.0 - a) * (cv[j - 1].0).0 as f32 +
+                  a * (cv[j].0).0 as f32 + 0.5) as u8,
+                 ((1.0 - a) * (cv[j - 1].0).1 as f32 +
+                  a * (cv[j].0).1 as f32 + 0.5) as u8,
+                 ((1.0 - a) * (cv[j - 1].0).2 as f32 +
+                  a * (cv[j].0).2 as f32 + 0.5) as u8)
+            };
+
+        raw_cv.push(col);
+    }
+
+    let mut keymap = KeyMap {
+        map: Vec::new(),
+    };
+
+    /* Map key index to row index */
+    let map: [u8; 106] = [
+        0, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2,
+        3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0,
+        1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4,
+        5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 1, 1, 2,
+        3, 4, 4, 0, 1, 2, 3, 4, 5, 0, 1, 2, 4, 5, 5, 0,
+        1, 2, 3, 5, 5, 5, 5, 4, 2, 1, 0, 0, 0, 0, 1, 2,
+        2, 0, 0, 1, 0, 1, 2, 3, 4, 5
+    ];
+
+    for row_i in map.iter() {
+        keymap.map.push(raw_cv[*row_i as usize]);
+    }
+
+    kbd.all_keys(&keymap);
+
+    Ok(())
+}
+
 fn do_gradient(kbd: &Keyboard, mut params: HashMap<&str, &str>)
     -> Result<(), String>
 {
     let cp = parse_color(params.remove("color").unwrap_or("rainbow"))?;
+    let dir = parse_direction(params.remove("direction").unwrap_or("right"))?;
 
     check_superfluous_params(params)?;
 
-    kbd.gradient(cp);
+    match dir {
+        Direction::Right => {
+            kbd.gradient(cp);
+            Ok(())
+        }
 
-    Ok(())
+        Direction::Left => {
+            let mut rcv = cp.gradient().colors;
+
+            rcv.reverse();
+            for col_pos in rcv.iter_mut() {
+                col_pos.1 = 100 - col_pos.1;
+            }
+
+            kbd.gradient(
+                ColorParam::Gradient(
+                    Gradient {
+                        colors: rcv
+                    }
+                )
+            );
+
+            Ok(())
+        }
+
+        Direction::Down => do_vgradient(kbd, cp, false),
+        Direction::Up   => do_vgradient(kbd, cp, true),
+    }
 }
 
 fn do_fade(kbd: &Keyboard, mut params: HashMap<&str, &str>)
