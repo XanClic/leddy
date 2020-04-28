@@ -74,4 +74,4 @@ Keyboard layout (indices for effect 03, for US ANSI layout):
  88 –  91: Delete, Insert, Print, Mute Microphone
  92 –  95: Mute Speakers, Scroll Lock, Home, End
  96 –  99: Page Down, Gaming Mode, Pause, Page Up
-100 – 105: (unknown), (unknown), (unknown), (unknown), (unknown), (unknown)
+100 – 105: (unknown), (unknown), (unknown), Signature Plate, (unknown), (unknown)
