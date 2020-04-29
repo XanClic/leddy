@@ -5,7 +5,6 @@ mod software_effects;
 mod types;
 
 use keyboard::Keyboard;
-use software_effects::screen_capture::screen_capture;
 use types::{Color, ColorParam, ColorMethods, Direction, Gradient, KeyMap};
 
 
@@ -515,8 +514,13 @@ fn main() {
                 "gradient"          => do_gradient(&kbd, effect),
                 "fade"              => do_fade(&kbd, effect),
 
-                "screen-capture"    => do_software_effect(&mut kbd, effect,
-                                                          screen_capture),
+                "screen-capture" =>
+                    do_software_effect(&mut kbd, effect,
+                                       software_effects::screen_capture),
+
+                "sound-spectrum" =>
+                    do_software_effect(&mut kbd, effect,
+                                       software_effects::sound_spectrum),
 
                 x => Err(format!("Unrecognized effect “{}”", x)),
             };

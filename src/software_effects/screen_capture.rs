@@ -19,7 +19,7 @@ fn usize_param(params: &mut HashMap<&str, &str>, name: &str, default: usize)
     }
 }
 
-fn xrandr_res() -> (usize, usize) {
+fn xrandr_res() -> Result<(usize, usize), String> {
     let mut xrandr =
         match Command::new("xrandr")
                 .arg("--query")
@@ -30,10 +30,8 @@ fn xrandr_res() -> (usize, usize) {
         {
             Ok(p) => p,
 
-            Err(e) => {
-                eprintln!("Failed to launch xrandr: {}", e);
-                std::process::exit(1);
-            }
+            Err(e) =>
+                return Err(format!("Failed to launch xrandr: {}", e)),
         };
 
     let mut xrandr_output = String::new();
@@ -50,13 +48,13 @@ fn xrandr_res() -> (usize, usize) {
     let mut xrandr_res_it = xrandr_res_it.next().unwrap().splitn(2, ", ");
     let xrandr_h = xrandr_res_it.next().unwrap().parse().unwrap();
 
-    (xrandr_w, xrandr_h)
+    Ok((xrandr_w, xrandr_h))
 }
 
 pub fn screen_capture(kbd: &Keyboard, mut params: HashMap<&str, &str>)
     -> Result<(), String>
 {
-    let (xrw, xrh) = xrandr_res();
+    let (xrw, xrh) = xrandr_res()?;
 
     let fps = usize_param(&mut params, "fps", 60)?;
     let x = usize_param(&mut params, "x", 0)?;
@@ -85,10 +83,8 @@ pub fn screen_capture(kbd: &Keyboard, mut params: HashMap<&str, &str>)
         {
             Ok(p) => p,
 
-            Err(e) => {
-                eprintln!("Failed to launch ffmpeg: {}", e);
-                std::process::exit(1);
-            }
+            Err(e) =>
+                return Err(format!("Failed to launch ffmpeg: {}", e)),
         };
 
     let mut ffmpeg_stdout = ffmpeg.stdout.unwrap();
