@@ -123,7 +123,11 @@ Software effects:
           · display=<$DISPLAY>
                 X11 display to capture (default: :0)
           · scale-algorithm=<algorithm>
-                libswscale algorithm to use (default: area)");
+                libswscale algorithm to use (default: area)
+
+  · sound-spectrum
+        Expects 44100 Hz s16 little-endian mono channels from stdin, performs an
+        FFT, and visualizes the result on the keyboard.");
 }
 
 fn strip_prefix<'a>(string: &'a str, prefix: &str) -> Option<&'a str> {
