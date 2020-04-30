@@ -30,6 +30,17 @@ Some examples for effects:
 * `leddy screen-capture`: Lets ffmpeg take 18×6 pixel screenshots and displays
   them on the keyboard (in 60 FPS).
 
+`sound-spectrum` is a software effect (that is, like `screen-capture`, leddy
+keeps running and manually updates all keys’ colors) that expects raw PCM data
+from stdin (44100 Hz s16 little-endian mono samples).  For example, it can be
+used as follows:
+```
+parecord -r \
+    -d $(LANG=C pactl info | grep Sink | sed -e 's/[^:]*..//').monitor \
+    --raw --rate=44100 --channels=1 --format=s16le --latency-msec=50 \
+    | leddy sound-spectrum
+```
+
 udev rule
 ---------
 
