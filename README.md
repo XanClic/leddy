@@ -3,7 +3,7 @@ leddy
 
 Linux LED controller for the fnatic miniSTREAK.
 
-(Works on Windows, too, though.)
+(Works on Windows, too, though: https://xanclic.moe/leddy.exe)
 
 Usage
 -----
@@ -80,4 +80,7 @@ applied on system startup or whenever the keyboard is plugged in.
 
 Considering that the keyboard does have memory to store every profile’s setting,
 this generally shouldn’t be necessary, though (apart from maybe switching the
-active profile).
+active profile).  However, you may find it useful to add `MODE="666"` to be able
+to run leddy without root rights.  I don’t know what the security implications
+of that are, though (i.e., whether this would allow any program to log keyboard
+input).
