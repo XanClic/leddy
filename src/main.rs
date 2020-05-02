@@ -110,6 +110,8 @@ Software effects:
         down to 18×6)
 
         Parameters:
+          · ffmpeg-bin=<path>
+                Path to ffmpeg (default: ffmpeg)
           · fps=<integer>
                 Rate with which to capture screenshots (default: 60)
           · x=<integer>
@@ -121,7 +123,7 @@ Software effects:
           · h=<integer>
                 Height of the captured rectangle (default: screen height)
           · display=<$DISPLAY>
-                X11 display to capture (default: :0)
+                X11 display to capture, ignored on Windows (default: :0)
           · scale-algorithm=<algorithm>
                 libswscale algorithm to use (default: area)
 
