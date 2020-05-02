@@ -3,6 +3,8 @@ leddy
 
 Linux LED controller for the fnatic miniSTREAK.
 
+(Works on Windows, too, though.)
+
 Usage
 -----
 
@@ -30,6 +32,8 @@ Some examples for effects:
 * `leddy screen-capture`: Lets ffmpeg take 18×6 pixel screenshots and displays
   them on the keyboard (in 60 FPS).
 
+### sound-spectrum
+
 `sound-spectrum` is a software effect (that is, like `screen-capture`, leddy
 keeps running and manually updates all keys’ colors) that expects raw PCM data
 from stdin (44100 Hz s16 little-endian mono samples).  For example, it can be
@@ -40,6 +44,20 @@ parecord -r \
     --raw --rate=44100 --channels=1 --format=s16le --latency-msec=50 \
     | leddy sound-spectrum
 ```
+
+On Windows with ffmpeg, first get the device name:
+```
+ffmpeg -list_devices true -f dshow -i dummy
+```
+And then:
+```
+ffmpeg -f dshow -audio_buffer_size 10 -i audio="[input source]" \
+    -f s16le -ac 1 -bufsize 1k - \
+    | leddy sound-spectrum
+```
+
+Note that Powershell buffers pipe data until the first process has exited, so
+you will have to invoke the above in cmd.
 
 udev rule
 ---------
