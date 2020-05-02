@@ -9,7 +9,8 @@ use crate::check_superfluous_params;
 use crate::keyboard::Keyboard;
 
 
-const SAMPLES: usize = 2210;
+const SAMPLES: usize = 2205;
+const BUF_MSEC: usize = 1000 / (44100 / SAMPLES);
 
 
 fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (f32, f32, f32) {
@@ -66,7 +67,18 @@ pub fn sound_spectrum(kbd: &Keyboard, params: HashMap<&str, &str>)
     let mut last_lengths = [0.0f32; 5];
     let mut freqs = [0.0f32; 18];
 
+    let frame_duration = std::time::Duration::from_millis(BUF_MSEC as u64);
+    let mut last_read = std::time::Instant::now() - frame_duration;
+
     loop {
+        /* Input may have too much latency, smooth it out */
+        let now = std::time::Instant::now();
+        let gone = now - last_read;
+        if gone < frame_duration {
+            std::thread::sleep(frame_duration - gone);
+        }
+        last_read += frame_duration;
+
         std::io::stdin().read_exact(unsafe {
             std::slice::from_raw_parts_mut(samples.as_ptr() as *mut u8,
                                            SAMPLES * 2)
