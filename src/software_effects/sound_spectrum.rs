@@ -131,10 +131,10 @@ pub fn sound_spectrum(kbd: &Keyboard, params: HashMap<&str, &str>)
             (0, freqs[0..3].iter().fold(0.0f32, |c, x| c.max(*x))),
 
             /* 260 Hz up to 4 kHz */
-            fft_vals[13..200].iter().enumerate()
-                .fold((0, 0.0), |(max_i, max_v), (i, v)| {
+            fft_vals[13..200].iter().zip(13..200)
+                .fold((0, 0.0), |(max_i, max_v), (v, i)| {
                     if *v > max_v {
-                        (i + 13, *v)
+                        (i, *v)
                     } else {
                         (max_i, max_v)
                     }
