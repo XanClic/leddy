@@ -10,7 +10,7 @@ use crate::keyboard::Keyboard;
 
 
 const SAMPLES: usize = 2205;
-const BUF_MSEC: usize = 1000 / (44100 / SAMPLES);
+const SAMPLES_USED: usize = 200; /* up to 4 kHz */
 
 
 fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (f32, f32, f32) {
@@ -46,6 +46,7 @@ pub fn sound_spectrum(kbd: &Keyboard, params: HashMap<&str, &str>)
 
     let mut buf = vec![Complex::<f32>::zero(); SAMPLES];
     let mut fft_res = vec![Complex::<f32>::zero(); SAMPLES];
+    let mut fft_vals = vec![0f32; SAMPLES_USED];
 
     let mut fft_planner = FFTplanner::new(false);
     let fft = fft_planner.plan_fft(SAMPLES);
@@ -58,6 +59,11 @@ pub fn sound_spectrum(kbd: &Keyboard, params: HashMap<&str, &str>)
         [4, 0xff,   10,   16,   22,   28,   34,   40,   46,   52,   58,   64,   70,   76,   82, 0xff, 0xff, 0xff],
         [5,   11,   17,   23,   29,   35,   41,   47,   53,   59,   65,   66, 0xff,   77, 0xff, 0xff,   87, 0xff],
         [6,   12, 0xff,   18, 0xff, 0xff,   36, 0xff, 0xff, 0xff,   60,   72, 0xff,   78,   83,   84,   85,   86],
+    ];
+
+    let peak_keys = [
+        84..88,
+        88..100,
     ];
 
     let mut keys = [0u8; 106 * 3];
@@ -81,6 +87,9 @@ pub fn sound_spectrum(kbd: &Keyboard, params: HashMap<&str, &str>)
         fft.process(&mut buf, &mut fft_res);
 
         /* FIXME: .norm() is wrong (should be .re.abs()) */
+        for i in 0..SAMPLES_USED {
+            fft_vals[i] = fft_res[i].norm();
+        }
 
         let intervals: [u8; 18] = [
             /* 40 – 80, 100 – 160, 180 – 240 */
@@ -93,66 +102,68 @@ pub fn sound_spectrum(kbd: &Keyboard, params: HashMap<&str, &str>)
              * 1840 – 2060 */
             8, 9, 11, 12, 13,
         ];
+
         let mut si = 2;
+        let mut freqs_max = 0.01f32; /* avoid later division by zero */
+        let mut freqs_avg = 0.0f32;
         for i in 0..18 {
             let ei = si + intervals[i] as usize;
 
-            freqs[i] = fft_res[si..ei].iter().fold(0.0, |c, x| c.max(x.norm()));
+            freqs[i] = fft_vals[si..ei].iter().fold(0.0, |c, x| c.max(*x));
+            freqs_max = freqs_max.max(freqs[i]);
+            if i >= 2 { /* Ignore low bass for this */
+                freqs_avg += freqs[i];
+            }
 
             si = ei;
         }
+        freqs_avg *= 1.0 / 16.0;
 
-        let max_val = freqs.iter().fold(0.0f32, |c, x| c.max(*x));
-        let scaled_max = max_val * scale;
+        let scaled_max = freqs_max * scale;
         if scaled_max > 1.0 {
             scale /= scaled_max;
         } else {
             scale = (0.995 * scale + 0.005 * scale / scaled_max).min(0.003);
         }
 
-        let (max_i, mut avg, mut max) =
-            freqs[3..].iter().enumerate().fold((0, 0.0f32, 0.0f32),
-                |(mi, ac, am), (xi, x)| {
-                    if *x > am {
-                        (xi + 3, ac + *x, *x)
+        let peaks: [(usize, f32); 2] = [
+            /* 40 to 240 Hz */
+            (0, freqs[0..3].iter().fold(0.0f32, |c, x| c.max(*x))),
+
+            /* 260 Hz up to 4 kHz */
+            fft_vals[13..200].iter().enumerate()
+                .fold((0, 0.0), |(max_i, max_v), (i, v)| {
+                    if *v > max_v {
+                        (i + 13, *v)
                     } else {
-                        (mi, ac + *x, am)
+                        (max_i, max_v)
                     }
-                });
+                }),
+        ];
 
-        avg *= scale / 15.0;
-        max *= scale;
+        for i in 0..2 {
+            let sat = (((17.0 / 16.0) * peaks[i].1 - freqs_avg)
+                       / freqs_max).min(1.0);
+            /* Red until 260 Hz, green at 680 Hz, capped at violet
+             * (log2 scale) */
+            let col = (((peaks[i].0 as f32).log2() - 3.7) * 0.2402466743058456)
+                        .max(0.0).min(5.0 / 6.0);
+            let val = (peaks[i].1 * scale).powf(2.0).min(1.0);
 
-        let saturation = ((16.0 / 15.0) * max - avg) / max.max(0.01);
-        let color = ((max_i as isize - 3) as f32 / 22.0)
-                        .max(0.0).min(4.0 / 6.0);
-        let value = max.powf(2.0);
+            let rgb = hsv_to_rgb(col, sat, val);
+            let int_rgb = ((rgb.0 * 255.0 + 0.5) as u8,
+                           (rgb.1 * 255.0 + 0.5) as u8,
+                           (rgb.2 * 255.0 + 0.5) as u8);
 
-        let bg = hsv_to_rgb(color, saturation, value);
-        let int_bg = ((bg.0 * 255.0 + 0.5) as u8,
-                      (bg.1 * 255.0 + 0.5) as u8,
-                      (bg.2 * 255.0 + 0.5) as u8);
-
-        let base = freqs[..3].iter().fold(0.0f32, |m, x| m.max(*x)) * scale;
-        let saturation = ((base - avg) / base.max(0.01)).max(0.0);
-        let value = base.powf(2.0);
-        let dir_bg = hsv_to_rgb(0.0, saturation, value);
-        let int_dir_bg = ((dir_bg.0 * 255.0 + 0.5) as u8,
-                          (dir_bg.1 * 255.0 + 0.5) as u8,
-                          (dir_bg.2 * 255.0 + 0.5) as u8);
+            for key_i in peak_keys[i].start..peak_keys[i].end {
+                keys[key_i * 3 + 0] = int_rgb.0;
+                keys[key_i * 3 + 1] = int_rgb.1;
+                keys[key_i * 3 + 2] = int_rgb.2;
+            }
+        }
 
         for i in 0..(84 * 3) {
             keys[i] = 0;
-        }
-        for i in 84..88 {
-            keys[i * 3 + 0] = int_dir_bg.0;
-            keys[i * 3 + 1] = int_dir_bg.1;
-            keys[i * 3 + 2] = int_dir_bg.2;
-        }
-        for i in 88..106 {
-            keys[i * 3 + 0] = int_bg.0;
-            keys[i * 3 + 1] = int_bg.1;
-            keys[i * 3 + 2] = int_bg.2;
         }
 
         /* Low bass on space, alt */
