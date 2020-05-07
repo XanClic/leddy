@@ -10,7 +10,9 @@ use crate::keyboard::Keyboard;
 
 
 const SAMPLES: usize = 2205;
+const SAMPLES_MSECS: usize = 1000 / (44100 / SAMPLES);
 const SAMPLES_USED: usize = 200; /* up to 4 kHz */
+const INACTIVITY_MSECS: usize = 5000;
 
 
 fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (f32, f32, f32) {
@@ -73,6 +75,8 @@ pub fn sound_spectrum(kbd: &Keyboard, params: HashMap<&str, &str>)
     let mut last_lengths = [0.0f32; 5];
     let mut freqs = [0.0f32; 18];
 
+    let mut inactivity_msecs = 0usize;
+
     loop {
         std::io::stdin().read_exact(unsafe {
             std::slice::from_raw_parts_mut(samples.as_ptr() as *mut u8,
@@ -105,19 +109,33 @@ pub fn sound_spectrum(kbd: &Keyboard, params: HashMap<&str, &str>)
 
         let mut si = 2;
         let mut freqs_max = 0.01f32; /* avoid later division by zero */
-        let mut freqs_avg = 0.0f32;
         for i in 0..18 {
             let ei = si + intervals[i] as usize;
 
             freqs[i] = fft_vals[si..ei].iter().fold(0.0, |c, x| c.max(*x));
             freqs_max = freqs_max.max(freqs[i]);
-            if i >= 2 { /* Ignore low bass for this */
-                freqs_avg += freqs[i];
-            }
 
             si = ei;
         }
-        freqs_avg *= 1.0 / 16.0;
+
+        if freqs_max <= 0.01f32 {
+            let was_below = inactivity_msecs < INACTIVITY_MSECS;
+
+            inactivity_msecs = inactivity_msecs.saturating_add(SAMPLES_MSECS);
+            if inactivity_msecs >= INACTIVITY_MSECS {
+                if was_below {
+                    kbd.refresh_profile();
+                }
+                continue;
+            }
+        } else {
+            inactivity_msecs = 0;
+        }
+
+        let avgs = [
+            freqs[0..3].iter().fold(0.0f32, |c, x| c + x) * (1.0 / 3.0),
+            freqs[3..18].iter().fold(0.0f32, |c, x| c + x) * (1.0 / 15.0),
+        ];
 
         let scaled_max = freqs_max * scale;
         if scaled_max > 1.0 {
@@ -142,8 +160,14 @@ pub fn sound_spectrum(kbd: &Keyboard, params: HashMap<&str, &str>)
         ];
 
         for i in 0..2 {
-            let sat = (((17.0 / 16.0) * peaks[i].1 - freqs_avg)
-                       / freqs_max).min(1.0);
+            let sat =
+                if i == 0 {
+                    1.0
+                } else {
+                    ((peaks[i].1 - (14.0 / 15.0) * avgs[i])
+                     / freqs_max).min(1.0)
+                };
+
             /* Red until 260 Hz, green at 680 Hz, capped at violet
              * (log2 scale) */
             let col = (((peaks[i].0 as f32).log2() - 3.7) * 0.2402466743058456)

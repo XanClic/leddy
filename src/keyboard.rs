@@ -55,12 +55,16 @@ impl Keyboard {
 
     pub fn software_effect_end(&mut self) {
         self.color_cmd_prefix = vec![0x05, self.profile, 0x02];
-        self.send_req(&[0x04], &[self.profile]);
+        self.refresh_profile();
     }
 
     pub fn set_profile(&mut self, profile: u8) {
         self.profile = profile;
         self.software_effect_end();
+    }
+
+    pub fn refresh_profile(&self) {
+        self.send_req(&[0x04], &[self.profile]);
     }
 
     pub fn send_req(&self, prefix: &[u8], raw_data: &[u8]) {
