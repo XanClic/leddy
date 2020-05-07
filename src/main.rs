@@ -476,7 +476,14 @@ fn main() {
         }
     }
 
-    let mut kbd = Keyboard::new();
+    let mut kbd = match Keyboard::new() {
+        Ok(k) => k,
+        Err(e) => {
+            eprintln!("{}", e);
+            std::process::exit(1);
+        },
+    };
+
     kbd.set_profile(profile);
 
     for arg in &argv {

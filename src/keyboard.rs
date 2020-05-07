@@ -10,34 +10,43 @@ pub struct Keyboard {
 
 
 impl Keyboard {
-    pub fn new() -> Self {
+    pub fn new() -> Result<Self, String> {
         let hidapi = HidApi::new().unwrap();
 
-        let mut dev_opt = None;
-        for dev in hidapi.device_list() {
-            if dev.vendor_id() == 0x2f0e && dev.product_id() == 0x0102 &&
-               dev.interface_number() == 1
+        /* TODO: Look for all matching devices and let the user choose */
+        let dev_info =
+            match hidapi.device_list().find(|dev|
+                dev.vendor_id() == 0x2f0e &&
+                (dev.product_id() == 0x0101 || dev.product_id() == 0x0102) &&
+                dev.interface_number() == 1)
             {
-                dev_opt = Some(dev);
-                break;
-            }
+                Some(di) => di,
+                None =>
+                    return Err(String::from("No miniSTREAK or STREAK keyboard \
+                                             found")),
+            };
+
+        if dev_info.product_id() == 0x0101 {
+            eprintln!("Warning: leddy may not work properly for (normal-sized) \
+                       STREAK keyboards");
         }
 
-        let dev = match dev_opt.unwrap().open_device(&hidapi) {
+        let dev = match dev_info.open_device(&hidapi) {
             Ok(x) => x,
-            Err(e) => {
-                eprintln!("Failed to open HID device: {}\n\
-                           Check whether you have the required access rights.",
-                          e);
-                std::process::exit(1);
-            }
+            Err(e) =>
+                return Err(format!("Failed to open HID device: {}\n\
+                                    Check whether you have the required access \
+                                    rights.",
+                                   e)),
         };
 
-        Keyboard {
-            dev: dev,
-            color_cmd_prefix: vec![0x05, 0x01, 0x02],
-            profile: 1,
-        }
+        Ok(
+            Keyboard {
+                dev: dev,
+                color_cmd_prefix: vec![0x05, 0x01, 0x02],
+                profile: 1,
+            }
+        )
     }
 
     pub fn software_effect_start(&mut self) {
