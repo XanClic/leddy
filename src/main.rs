@@ -535,6 +535,10 @@ fn main() {
                     do_software_effect(&mut kbd, effect,
                                        software_effects::sound_spectrum),
 
+                "x-key-ids" =>
+                    do_software_effect(&mut kbd, effect,
+                                       software_effects::x_key_ids),
+
                 x => Err(format!("Unrecognized effect “{}”", x)),
             };
 
