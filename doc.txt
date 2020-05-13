@@ -68,10 +68,20 @@ Keyboard layout (indices for effect 03, for US ANSI layout):
  55 –  60: F9, 9, O, L, ,<, Right Alt
  61 –  66: 0, -_, P, ;:, .>, /?
  67 –  72: F10, =+, [{, '", (unknown), Fn
- 73 –  78: F11, (unknown), ]}, (unknown, perhaps \| on ISO), Right Shift, Menu
- 79 –  83: F12, Backspace, \|, Enter, Right Control
+ 73 –  78: F11, (unknown), ]}, \| on ISO, Right Shift, Menu
+ 79 –  83: F12, Backspace, \| on ANSI, Enter, Right Control
  84 –  87: Left, Down, Right, Up
  88 –  91: Delete, Insert, Print, Mute Microphone
  92 –  95: Mute Speakers, Scroll Lock, Home, End
  96 –  99: Page Down, Gaming Mode, Pause, Page Up
-100 – 105: (unknown), (unknown), (unknown), Signature Plate, (unknown), (unknown)
+
+miniStreak:
+      103: Signature Plate
+
+Full-sized Streak:
+100 – 104: Num Lock, Num 7, Num 4, Num 1, Num 0
+105 – 108: Num 2, Num 5, Num 8, Num /
+109 – 113: Num *, Num 9, Num 6, Num 3, Num .
+114 – 116: Num Enter, Num +, Num -
+      118: Volume Knob
+      120: Signature Plate
