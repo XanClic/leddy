@@ -53,22 +53,74 @@ pub fn sound_spectrum(kbd: &Keyboard, params: HashMap<&str, &str>)
     let mut fft_planner = FFTplanner::new(false);
     let fft = fft_planner.plan_fft(SAMPLES);
 
-    /* FIXME: Use floating-point coordinates for better precision */
-    let map: [[u8; 18]; 6] = [
-        [1,    0,    7,   13,   19,   25,   31,   37,   43,   49, 0xff,   55,   67,   73,   79,   90,   93,   98],
-        [2,    8,   14,   20,   26,   32,   38,   44,   50,   56,   61,   62,   68,   80, 0xff,   89,   94,   99],
-        [3,    9,   15,   21,   27,   33,   39,   45,   51,   57,   63,   69,   75, 0xff,   81,   88,   95,   96],
-        [4, 0xff,   10,   16,   22,   28,   34,   40,   46,   52,   58,   64,   70,   76,   82, 0xff, 0xff, 0xff],
-        [5,   11,   17,   23,   29,   35,   41,   47,   53,   59,   65,   66, 0xff,   77, 0xff, 0xff,   87, 0xff],
-        [6,   12, 0xff,   18, 0xff, 0xff,   36, 0xff, 0xff, 0xff,   60,   72, 0xff,   78,   83,   84,   85,   86],
-    ];
-
     let peak_keys = [
-        84..88,
-        88..100,
+        if kbd.mini {
+            vec![
+                Keyboard::LEFT,
+                Keyboard::DOWN,
+                Keyboard::RIGHT,
+                Keyboard::UP,
+            ]
+        } else {
+            vec![
+                Keyboard::LEFT,
+                Keyboard::DOWN,
+                Keyboard::RIGHT,
+                Keyboard::UP,
+                Keyboard::DELETE,
+                Keyboard::INSERT,
+                Keyboard::PRINT,
+                Keyboard::SCROLL_LOCK,
+                Keyboard::HOME,
+                Keyboard::END,
+                Keyboard::PAGE_DOWN,
+                Keyboard::PAUSE,
+                Keyboard::PAGE_UP,
+            ]
+        },
+
+        if kbd.mini {
+            vec![
+                Keyboard::DELETE,
+                Keyboard::INSERT,
+                Keyboard::PRINT,
+                Keyboard::MUTE_MIC,
+                Keyboard::MUTE_SPEAKER,
+                Keyboard::SCROLL_LOCK,
+                Keyboard::HOME,
+                Keyboard::END,
+                Keyboard::PAGE_DOWN,
+                Keyboard::GAMING_MODE,
+                Keyboard::PAUSE,
+                Keyboard::PAGE_UP,
+                Keyboard::MINI_SIG_PLATE,
+            ]
+        } else {
+            vec![
+                Keyboard::NUM_LOCK,
+                Keyboard::NUM_7,
+                Keyboard::NUM_4,
+                Keyboard::NUM_1,
+                Keyboard::NUM_0,
+                Keyboard::NUM_2,
+                Keyboard::NUM_5,
+                Keyboard::NUM_8,
+                Keyboard::NUM_SLASH,
+                Keyboard::NUM_ASTERISK,
+                Keyboard::NUM_9,
+                Keyboard::NUM_6,
+                Keyboard::NUM_3,
+                Keyboard::NUM_DECIMAL,
+                Keyboard::NUM_ENTER,
+                Keyboard::NUM_PLUS,
+                Keyboard::NUM_MINUS,
+                Keyboard::VOLUME_KNOB,
+                Keyboard::FULL_SIG_PLATE,
+            ]
+        },
     ];
 
-    let mut keys = [0u8; 106 * 3];
+    let mut keys = vec![0u8; kbd.led_count * 3];
 
     let mut scale = 0.0015f32;
 
@@ -78,6 +130,10 @@ pub fn sound_spectrum(kbd: &Keyboard, params: HashMap<&str, &str>)
     let mut inactivity_msecs = 0usize;
 
     loop {
+        for i in 0..keys.len() {
+            keys[i] = 0;
+        }
+
         std::io::stdin().read_exact(unsafe {
             std::slice::from_raw_parts_mut(samples.as_ptr() as *mut u8,
                                            SAMPLES * 2)
@@ -179,36 +235,32 @@ pub fn sound_spectrum(kbd: &Keyboard, params: HashMap<&str, &str>)
                            (rgb.1 * 255.0 + 0.5) as u8,
                            (rgb.2 * 255.0 + 0.5) as u8);
 
-            for key_i in peak_keys[i].start..peak_keys[i].end {
+            for key_i in &peak_keys[i] {
                 keys[key_i * 3 + 0] = int_rgb.0;
                 keys[key_i * 3 + 1] = int_rgb.1;
                 keys[key_i * 3 + 2] = int_rgb.2;
             }
         }
 
-        for i in 0..(84 * 3) {
-            keys[i] = 0;
-        }
-
         /* Low bass on space, alt */
         let intensity =
             (((freqs[0] * scale).powf(2.0) * 255.0).min(255.0) + 0.5) as u8;
-        keys[18 * 3 + 0] = intensity;
-        keys[36 * 3 + 0] = intensity;
-        keys[60 * 3 + 0] = intensity;
+        keys[Keyboard::LALT  * 3 + 0] = intensity;
+        keys[Keyboard::SPACE * 3 + 0] = intensity;
+        keys[Keyboard::RALT  * 3 + 0] = intensity;
 
         /* Mid bass on meta, fn, menu */
         let intensity =
             (((freqs[1] * scale).powf(2.0) * 255.0).min(255.0) + 0.5) as u8;
-        keys[12 * 3 + 0] = intensity;
-        keys[72 * 3 + 0] = intensity;
-        keys[78 * 3 + 0] = intensity;
+        keys[Keyboard::META * 3 + 0] = intensity;
+        keys[Keyboard::FN   * 3 + 0] = intensity;
+        keys[Keyboard::MENU * 3 + 0] = intensity;
 
         /* High bass on control */
         let intensity =
             (((freqs[2] * scale).powf(2.0) * 255.0).min(255.0) + 0.5) as u8;
-        keys[ 6 * 3 + 0] = intensity;
-        keys[83 * 3 + 0] = intensity;
+        keys[Keyboard::LCONTROL * 3 + 0] = intensity;
+        keys[Keyboard::RCONTROL * 3 + 0] = intensity;
 
         for row_i in 0..5 {
             let fqib = 4 - row_i + 3;
@@ -238,7 +290,7 @@ pub fn sound_spectrum(kbd: &Keyboard, params: HashMap<&str, &str>)
                 ((length * scale * 15.0).min(15.0) + 0.5) as usize;
 
             for j in 0..filled_bars {
-                let ki = map[row_i][j] as usize;
+                let ki = kbd.ledmap[row_i * kbd.width + j] as usize;
 
                 if ki != 0xff {
                     keys[ki * 3 + 0] = rgb_int.0;

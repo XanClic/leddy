@@ -322,8 +322,8 @@ impl Gradient {
 
 impl KeyMap {
     pub fn from_stdin() -> Result<KeyMap, String> {
-        let mut map = Vec::with_capacity(106);
-        for _ in 0..106 {
+        let mut map = Vec::with_capacity(121);
+        for _ in 0..121 {
             map.push(Color::BLACK);
         }
 

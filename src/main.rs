@@ -107,7 +107,7 @@ Parameters:
 Software effects:
   · screen-capture
         Captures the screen (with ffmpeg) and mirrors it to the keyboard (scaled
-        down to 18×6)
+        down to 18×6 (miniStreak) or 22×6 (normal Streak))
 
         Parameters:
           · ffmpeg-bin=<path>
@@ -335,19 +335,19 @@ fn do_vgradient(kbd: &Keyboard, cp: ColorParam, up: bool)
     }
 
     let mut keymap = KeyMap {
-        map: Vec::new(),
+        map: Vec::with_capacity(kbd.led_count),
     };
 
-    /* Map key index to row index */
-    let map: [u8; 106] = [
-        0, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2,
-        3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0,
-        1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4,
-        5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 1, 1, 2,
-        3, 4, 4, 0, 1, 2, 3, 4, 5, 0, 1, 2, 4, 5, 5, 0,
-        1, 2, 3, 5, 5, 5, 5, 4, 2, 1, 0, 0, 0, 0, 1, 2,
-        2, 0, 0, 1, 0, 0, 0, 0, 0, 0
-    ];
+    /* Map key index to row index (default to 0) */
+    let mut map = vec![0u8; kbd.led_count];
+    for y in 0..6 {
+        for x in 0..kbd.width {
+            let i = kbd.ledmap[y * kbd.width + x];
+            if i != 0xff {
+                map[i as usize] = y as u8;
+            }
+        }
+    }
 
     for row_i in map.iter() {
         keymap.map.push(raw_cv[*row_i as usize]);
