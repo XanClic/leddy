@@ -5,6 +5,15 @@ Linux LED controller for the fnatic miniSTREAK.
 
 (Works on Windows, too, though: https://xanclic.moe/leddy.exe)
 
+Installation
+------------
+
+1. install rust: `curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh`
+2. download repository: `git clone https://github.com/XanClic/leddy.git`
+3. install libusb-1.0: `sudo apt-get install libusb-1.0-0-dev`
+4. build cargos: `cd leddy && cargo build`
+5. compile executable: `rustc src/main.rs`
+
 Usage
 -----
 
