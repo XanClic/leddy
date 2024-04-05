@@ -129,8 +129,8 @@ pub fn sound_spectrum(kbd: &Keyboard, params: HashMap<&str, &str>)
     let mut inactivity_msecs = 0usize;
 
     loop {
-        for i in 0..keys.len() {
-            keys[i] = 0;
+        for key in &mut keys {
+            *key = 0;
         }
 
         std::io::stdin().read_exact(unsafe {

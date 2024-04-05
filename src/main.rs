@@ -429,11 +429,11 @@ fn main() {
 
     /* Look for global switches before trying to open the keyboard */
     for arg in &argv {
-        if !arg.starts_with("-") {
+        if !arg.starts_with('-') {
             continue;
         }
 
-        let mut arg_split = arg.splitn(2, "=");
+        let mut arg_split = arg.splitn(2, '=');
 
         match arg_split.next().unwrap() {
             "-h" | "-?" | "--help" => {
@@ -469,7 +469,7 @@ fn main() {
 
             x => {
                 eprintln!("Unrecognized switch “{}”", x);
-                eprintln!("");
+                eprintln!();
                 print_usage();
                 std::process::exit(1);
             }
@@ -487,7 +487,7 @@ fn main() {
     kbd.set_profile(profile);
 
     for arg in &argv {
-        if arg.starts_with("-") {
+        if arg.starts_with('-') {
             continue;
         }
 

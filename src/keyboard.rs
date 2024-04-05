@@ -176,11 +176,11 @@ impl Keyboard {
 
         Ok(
             Keyboard {
-                dev: dev,
+                dev,
                 color_cmd_prefix: vec![0x05, 0x01, 0x02],
                 profile: 1,
 
-                mini: mini,
+                mini,
 
                 width: if mini { 18 } else { 22 },
                 led_count: if mini { 106 } else { 124 },

@@ -236,7 +236,7 @@ impl Gradient {
             proto_vec.push((col, coli));
         }
 
-        if proto_vec.len() < 1 {
+        if proto_vec.is_empty() {
             return Err(String::from("Gradients must have at least one color"));
         } else if proto_vec.len() > 10 {
             return Err(String::from("Gradients cannot have more than ten \
@@ -337,7 +337,7 @@ impl KeyMap {
             map[i] = Color::from_str(&line)?;
         }
 
-        Ok(KeyMap { map: map })
+        Ok(KeyMap { map })
     }
 
     pub fn raw(&self) -> &[u8] {

@@ -40,8 +40,7 @@ fn xrandr_res() -> Result<(isize, isize), String> {
 
     xrandr.wait().unwrap();
 
-    let xrandr_res =
-        xrandr_output.splitn(2, ", current ").skip(1).next().unwrap();
+    let xrandr_res = xrandr_output.split_once(", current ").unwrap().1;
 
     let mut xrandr_res_it = xrandr_res.splitn(2, " x ");
     let xrandr_w = xrandr_res_it.next().unwrap().parse().unwrap();
