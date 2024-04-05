@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::io::Read;
 
-use rustfft::FFTplanner;
+use rustfft::FftPlanner;
 use rustfft::num_complex::Complex;
 use rustfft::num_traits::Zero;
 
@@ -47,11 +47,10 @@ pub fn sound_spectrum(kbd: &Keyboard, params: HashMap<&str, &str>)
     let samples = [0u16; SAMPLES];
 
     let mut buf = vec![Complex::<f32>::zero(); SAMPLES];
-    let mut fft_res = vec![Complex::<f32>::zero(); SAMPLES];
     let mut fft_vals = vec![0f32; SAMPLES_USED];
 
-    let mut fft_planner = FFTplanner::new(false);
-    let fft = fft_planner.plan_fft(SAMPLES);
+    let mut fft_planner = FftPlanner::new();
+    let fft = fft_planner.plan_fft_forward(SAMPLES);
 
     let peak_keys = [
         if kbd.mini {
@@ -144,11 +143,11 @@ pub fn sound_spectrum(kbd: &Keyboard, params: HashMap<&str, &str>)
             buf[i].im = 0.0;
         }
 
-        fft.process(&mut buf, &mut fft_res);
+        fft.process(&mut buf);
 
         /* FIXME: .norm() is wrong (should be .re.abs()) */
         for i in 0..SAMPLES_USED {
-            fft_vals[i] = fft_res[i].norm();
+            fft_vals[i] = buf[i].norm();
         }
 
         let intervals: [u8; 18] = [
