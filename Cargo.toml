@@ -1,8 +1,9 @@
 [package]
 name = "leddy"
 version = "0.1.0"
-authors = ["Hanna Reitz <hanna@xanclic.moe>"]
+authors = ["Hanna Czenczek <hanna@xanclic.moe>"]
 edition = "2018"
+license = "GPL-3.0-or-later"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

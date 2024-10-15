@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2024 Hanna Czenczek <hanna@xanclic.moe>
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 pub mod screen_capture;
 pub mod sound_spectrum;
 pub mod x_key_ids;

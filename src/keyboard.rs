@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2024 Hanna Czenczek <hanna@xanclic.moe>
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 use hidapi::{HidApi, HidDevice};
 use crate::types::{ColorParam, Direction, KeyMap};
 
