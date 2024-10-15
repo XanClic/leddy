@@ -9,7 +9,6 @@ pub type Color = (u8, u8, u8);
 
 pub trait ColorMethods: std::marker::Sized {
     const BLACK: Self;
-    const WHITE: Self;
 
     const RED: Self;
     const GREEN: Self;
@@ -49,7 +48,6 @@ pub enum Direction {
 
 impl ColorMethods for Color {
     const BLACK: Color      = (0x00, 0x00, 0x00);
-    const WHITE: Color      = (0xff, 0xff, 0xff);
 
     const RED: Color        = (0xff, 0x00, 0x00);
     const GREEN: Color      = (0x00, 0xff, 0x00);
